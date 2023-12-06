@@ -33,6 +33,16 @@ void setup()
 
   pinMode(BUILTIN_LED, OUTPUT);
 
+  File file = SPIFFS.open("/test.txt");
+  if(!file){
+    Serial.println("Failed to open file!");
+    return;
+  }
+
+  Serial.println("Content of file:");
+  Serial.write(file.read());
+  file.close();
+
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, PUT");
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
