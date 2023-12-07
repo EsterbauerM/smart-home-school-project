@@ -1,55 +1,67 @@
-#include "WiFi.h"
-#include "ESPAsyncWebServer.h"
-#include "SPIFFS.h"
-#include "ezButton.h"
+
+#ifdef ESP32
+  #include <WiFi.h>
+  #include <AsyncTCP.h>
+  #include <SPIFFS.h>
+#else
+  #include <ESP8266WiFi.h>
+  #include <ESPAsyncTCP.h>
+#endif
+#include <ESPAsyncWebServer.h>
 
 #include "wifi_credentials.h"
 
-const int ledPin = 2;
-ezButton button(0);
+const char* ssid = SSID;
+const char* password = PASSWORD;
 
-String ledState;
-String buttonState;
+const char* PARAM_INPUT_1 = "state";
+
+const int output = 2;
+const int buttonPin = 0;
+
+int ledState = LOW;          // the current state of the output pin
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    
 
 AsyncWebServer server(80);
 
-String processor(const String& var){
-  Serial.println("processor: "+var);
-  if(var == "LED_STATE"){
-    if(digitalRead(ledPin)){
-      ledState = "ON";
-    }
-    else{
-      ledState = "OFF";
-    }
-    Serial.print(ledState);
-    return ledState;
+String outputState(){
+  if(digitalRead(output)){
+    return "checked";
   }
+  else {
+    return "";
+  }
+  return "";
+}
 
-  if(var == "BUTTON_STATE"){
-    if(button.isPressed())
-      buttonState = "pressed";
-
-    else
-      buttonState = " ";
-
-    Serial.println(buttonState);
-    return buttonState;
+String processor(const String& var){
+  if(var == "BUTTONPLACEHOLDER"){
+    String buttons ="";
+    String outputStateValue = outputState();
+    buttons+= "<h4>Output - GPIO 2 - State <span id=\"outputState\"></span></h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
+    return buttons;
   }
   return String();
 }
- 
+
 void setup(){
   // Serial port for debugging purposes
   Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
+
+  pinMode(output, OUTPUT);
+  digitalWrite(output, LOW);
+  pinMode(buttonPin, INPUT);
 
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
-
+  
   // Connect to Wi-Fi
   WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
@@ -68,29 +80,58 @@ void setup(){
     request->send(SPIFFS, "/style.css", "text/css");
   });
 
-  // Route to set GPIO to HIGH or LOW
-  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(ledPin, HIGH);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
-  });
-  
-  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(ledPin, LOW);    
-    request->send(SPIFFS, "/index.html", String(), false, processor);
+  server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/app.js", "text/javascript");
   });
 
+  // Send a GET request to <ESP_IP>/update?state=<inputMessage>
+  server.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String inputMessage;
+    String inputParam;
+    // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+    if (request->hasParam(PARAM_INPUT_1)) {
+      inputMessage = request->getParam(PARAM_INPUT_1)->value();
+      inputParam = PARAM_INPUT_1;
+      digitalWrite(output, inputMessage.toInt());
+      ledState = !ledState;
+    }
+    else {
+      inputMessage = "No message sent";
+      inputParam = "none";
+    }
+    Serial.println(inputMessage);
+    request->send(200, "text/plain", "OK");
+  });
+
+  // Send a GET request to <ESP_IP>/state
+  server.on("/state", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", String(digitalRead(output)).c_str());
+  });
+  // Start server
   server.begin();
-
-  button.setDebounceTime(40);
 }
- 
-void loop(){
-  button.loop();
+  
+void loop() {
 
-  if(button.isPressed()){
-    Serial.println("button pressed");
-    Serial.println(ledState);
-    ledState= ledState=="OFF"? "ON" : "OFF";
-    digitalWrite(ledPin, (ledState=="OFF"? LOW : HIGH));
+  int reading = digitalRead(buttonPin);
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = millis();
   }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+
+    if (reading != buttonState) {
+      buttonState = reading;
+
+
+      if (buttonState == HIGH) {
+        ledState = !ledState;
+      }
+    }
+  }
+
+  digitalWrite(output, ledState);
+
+  lastButtonState = reading;
 }
