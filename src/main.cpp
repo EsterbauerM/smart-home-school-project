@@ -1,21 +1,21 @@
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
 #include "SPIFFS.h"
+#include "ezButton.h"
 
 #include "wifi_credentials.h"
 
-// Set LED GPIO
 const int ledPin = 2;
-// Stores LED state
-String ledState;
+ezButton button(0);
 
-// Create AsyncWebServer object on port 80
+String ledState;
+String buttonState;
+
 AsyncWebServer server(80);
 
-// Replaces placeholder with LED state value
 String processor(const String& var){
-  Serial.println(var);
-  if(var == "STATE"){
+  Serial.println("processor: "+var);
+  if(var == "LED_STATE"){
     if(digitalRead(ledPin)){
       ledState = "ON";
     }
@@ -24,6 +24,17 @@ String processor(const String& var){
     }
     Serial.print(ledState);
     return ledState;
+  }
+
+  if(var == "BUTTON_STATE"){
+    if(button.isPressed())
+      buttonState = "pressed";
+
+    else
+      buttonState = " ";
+
+    Serial.println(buttonState);
+    return buttonState;
   }
   return String();
 }
@@ -46,7 +57,6 @@ void setup(){
     Serial.println("Connecting to WiFi..");
   }
 
-  // Print ESP32 Local IP Address
   Serial.println(WiFi.localIP());
 
   // Route for root / web page
@@ -54,27 +64,33 @@ void setup(){
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
   
-  // Route to load style.css file
   server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/style.css", "text/css");
   });
 
-  // Route to set GPIO to HIGH
+  // Route to set GPIO to HIGH or LOW
   server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
     digitalWrite(ledPin, HIGH);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
   
-  // Route to set GPIO to LOW
   server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
     digitalWrite(ledPin, LOW);    
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
-  // Start server
   server.begin();
+
+  button.setDebounceTime(40);
 }
  
 void loop(){
-  
+  button.loop();
+
+  if(button.isPressed()){
+    Serial.println("button pressed");
+    Serial.println(ledState);
+    ledState= ledState=="OFF"? "ON" : "OFF";
+    digitalWrite(ledPin, (ledState=="OFF"? LOW : HIGH));
+  }
 }
