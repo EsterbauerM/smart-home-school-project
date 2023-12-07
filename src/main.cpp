@@ -1,85 +1,80 @@
-#include <Arduino.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPmDNS.h>
-#include <AsyncJson.h>
-#include <SPIFFS.h>
+#include "WiFi.h"
+#include "ESPAsyncWebServer.h"
+#include "SPIFFS.h"
 
 #include "wifi_credentials.h"
 
-#define BUILTIN_LED 18
+// Set LED GPIO
+const int ledPin = 2;
+// Stores LED state
+String ledState;
 
+// Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 
-void setup()
-{
-  Serial.begin(115200);
-  Serial.println("Booted");
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PASSWORD);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED)
-  {
-    Serial.println("Connection Failed! Rebooting....");
-    delay(5000);
-    ESP.restart();
+// Replaces placeholder with LED state value
+String processor(const String& var){
+  Serial.println(var);
+  if(var == "STATE"){
+    if(digitalRead(ledPin)){
+      ledState = "ON";
+    }
+    else{
+      ledState = "OFF";
+    }
+    Serial.print(ledState);
+    return ledState;
   }
+  return String();
+}
+ 
+void setup(){
+  // Serial port for debugging purposes
+  Serial.begin(115200);
+  pinMode(ledPin, OUTPUT);
 
-  SPIFFS.begin();
-
-  MDNS.begin("homeserver");
-
-  Serial.print("Wifi connected, IP address: ");
-  Serial.println(WiFi.localIP());
-
-  pinMode(BUILTIN_LED, OUTPUT);
-
-  File file = SPIFFS.open("/test.txt");
-  if(!file){
-    Serial.println("Failed to open file!");
+  // Initialize SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
-  Serial.println("Content of file:");
-  Serial.write(file.read());
-  file.close();
+  // Connect to Wi-Fi
+  WiFi.begin(SSID, PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
 
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, PUT");
-  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
+  // Print ESP32 Local IP Address
+  Serial.println(WiFi.localIP());
 
-  server.addHandler(new AsyncCallbackJsonWebHandler("/led", [](AsyncWebServerRequest *request, JsonVariant &json) {
-    const JsonObject &jsonObj = json.as<JsonObject>();
-    if (jsonObj["on"])
-    {
-      Serial.println("Turn on LED");
-      digitalWrite(BUILTIN_LED, HIGH);
-    }
-    else
-    {
-      Serial.println("Turn off LED");
-      digitalWrite(BUILTIN_LED, LOW);
-    }
-    request->send(200, "OK");
-  }));
-
-  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-
-  server.onNotFound([](AsyncWebServerRequest *request) {
-    if (request->method() == HTTP_OPTIONS)
-    {
-      request->send(200);
-    }
-    else
-    {
-      Serial.println("Not found");
-      request->send(404, "Not found");
-    }
+  // Route for root / web page
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to load style.css file
+  server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/style.css", "text/css");
   });
 
+  // Route to set GPIO to HIGH
+  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(ledPin, HIGH);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to set GPIO to LOW
+  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(ledPin, LOW);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+
+  // Start server
   server.begin();
 }
-
-void loop()
-{
-  // put your main code here, to run repeatedly:
+ 
+void loop(){
+  
 }
