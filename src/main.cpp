@@ -25,10 +25,14 @@ int ledState = LOW;          // the current state of the output pin
 int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
 
-Servo servo1;
-int servo1_pos = 0; // Start angle of servo
-static const int servo1Pin = 14;
-int posDegrees = 0;
+Servo servo_window;
+Servo servo_door;
+
+int servo_indow_pos = 0;     // Start angle of servos
+int servo_door_pos = 0;     
+static const int servoWindowPin = 14;
+static const int servoDoorPin = 14;
+int posDegrees = 0;          // 0 = Window is open, 90 (roughly) = Window is closed
 
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;
@@ -64,13 +68,20 @@ void setup(){
   digitalWrite(output, LOW);
   pinMode(buttonPin, INPUT);
 
-  servo1.attach(
-        servo1Pin, 
+  servo_window.attach(
+        servoWindowPin, 
         Servo::CHANNEL_NOT_ATTACHED, 
         45,
         120
   );
-  servo1.write(posDegrees);
+  servo_door.attach(
+        servoDoorPin, 
+        Servo::CHANNEL_NOT_ATTACHED, 
+        45,
+        120
+  );
+  servo_window.write(posDegrees);
+  servo_door.write(posDegrees);
 
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
@@ -125,13 +136,6 @@ void setup(){
   });
   // Start server
   server.begin();
-
-
-  for(posDegrees = 0; posDegrees <= 100; posDegrees++) {
-    servo1.write(posDegrees);
-    Serial.println(posDegrees);
-    delay(200);
-  }
 }
   
 void loop() {
@@ -147,7 +151,6 @@ void loop() {
     if (reading != buttonState) {
       buttonState = reading;
 
-
       if (buttonState == HIGH) {
         ledState = !ledState;
       }
@@ -157,12 +160,20 @@ void loop() {
   digitalWrite(output, ledState);
 
   lastButtonState = reading;
+}
 
-  
-
-    /*for(posDegrees = 180; posDegrees >= 0; posDegrees--) {
-        servo1.write(posDegrees);
-        Serial.println(posDegrees);
-        delay(5);
-    }*/
+void operateWindow(boolean windowToggle){
+  if(windowToggle){
+    for(posDegrees = 0; posDegrees <= 100; posDegrees++) {
+      servo_window.write(posDegrees);
+      Serial.println(posDegrees);
+      delay(20);
+    }
+  } else {
+    for(posDegrees = 180; posDegrees >= 0; posDegrees--) {
+      servo_window.write(posDegrees);
+      Serial.println(posDegrees);
+      delay(20);
+    }
+  }
 }
