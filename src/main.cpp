@@ -3,6 +3,7 @@
   #include <WiFi.h>
   #include <AsyncTCP.h>
   #include <SPIFFS.h>
+  #include <Servo.h>
 #else
   #include <ESP8266WiFi.h>
   #include <ESPAsyncTCP.h>
@@ -22,6 +23,10 @@ const int buttonPin = 0;
 int ledState = LOW;          // the current state of the output pin
 int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
+
+Servo servo_1;
+int servo1_pos = 0; // Start angle of servo
+#define SERVO1_PIN 9
 
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    
@@ -56,6 +61,17 @@ void setup(){
   digitalWrite(output, LOW);
   pinMode(buttonPin, INPUT);
 
+  servo_1.attach(SERVO1_PIN);
+
+  for(servo1_pos = 0; servo1_pos < 180; servo1_pos += 1) { // angle from 0 to 180 degrees
+    servo_1.write (servo1_pos); // The servo angle is pos
+    delay (15); // Delay 15ms
+  }
+  for(servo1_pos = 180; servo1_pos>=1; servo1_pos-=1) { // Angle from 180 to 0 degrees
+    servo_1.write (servo1_pos); // The angle of the servo is pos
+    delay (15); // Delay 15ms
+  }
+
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -69,7 +85,7 @@ void setup(){
     Serial.println("Connecting to WiFi..");
   }
 
-  Serial.println(WiFi.localIP());
+  Serial.println("Connected: "+ WiFi.localIP());
 
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
