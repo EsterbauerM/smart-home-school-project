@@ -4,6 +4,7 @@
   #include <AsyncTCP.h>
   #include <SPIFFS.h>
   #include <Servo.h>
+  #include <Wire.h>
 #else
   #include <ESP8266WiFi.h>
   #include <ESPAsyncTCP.h>
@@ -24,12 +25,13 @@ int ledState = LOW;          // the current state of the output pin
 int buttonState;             // the current reading from the input pin
 int lastButtonState = LOW;   // the previous reading from the input pin
 
-Servo servo_1;
+Servo servo1;
 int servo1_pos = 0; // Start angle of servo
-#define SERVO1_PIN 9
+static const int servo1Pin = 14;
+int posDegrees = 0;
 
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 50;    
+unsigned long debounceDelay = 50;
 
 AsyncWebServer server(80);
 
@@ -53,6 +55,7 @@ String processor(const String& var){
   return String();
 }
 
+
 void setup(){
   // Serial port for debugging purposes
   Serial.begin(115200);
@@ -61,16 +64,13 @@ void setup(){
   digitalWrite(output, LOW);
   pinMode(buttonPin, INPUT);
 
-  servo_1.attach(SERVO1_PIN);
-
-  for(servo1_pos = 0; servo1_pos < 180; servo1_pos += 1) { // angle from 0 to 180 degrees
-    servo_1.write (servo1_pos); // The servo angle is pos
-    delay (15); // Delay 15ms
-  }
-  for(servo1_pos = 180; servo1_pos>=1; servo1_pos-=1) { // Angle from 180 to 0 degrees
-    servo_1.write (servo1_pos); // The angle of the servo is pos
-    delay (15); // Delay 15ms
-  }
+  servo1.attach(
+        servo1Pin, 
+        Servo::CHANNEL_NOT_ATTACHED, 
+        45,
+        120
+  );
+  servo1.write(posDegrees);
 
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
@@ -125,6 +125,13 @@ void setup(){
   });
   // Start server
   server.begin();
+
+
+  for(posDegrees = 0; posDegrees <= 100; posDegrees++) {
+    servo1.write(posDegrees);
+    Serial.println(posDegrees);
+    delay(200);
+  }
 }
   
 void loop() {
@@ -150,4 +157,12 @@ void loop() {
   digitalWrite(output, ledState);
 
   lastButtonState = reading;
+
+  
+
+    /*for(posDegrees = 180; posDegrees >= 0; posDegrees--) {
+        servo1.write(posDegrees);
+        Serial.println(posDegrees);
+        delay(5);
+    }*/
 }
