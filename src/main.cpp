@@ -12,6 +12,7 @@
 #include <MFRC522v2.h>
 #include <MFRC522DriverI2C.h>
 #include <MFRC522Debug.h>
+#include <MFRC522DriverPinSimple.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESPAsyncWebServer.h>
 #include "OneButton.h"
@@ -24,7 +25,7 @@ const unsigned int
  thSensPin = 17,            // temp. & humidity
  steamPin = 34,
  fanMPin = 18, fanPPin = 19, // fan Minus & Plus
- pirPin = 14,
+ pirPin = 35,                // IS ON ANALOG PIN NOW  
  rgbPin = 26,
  gasPin = 23,
  buzzerPin = 25,
@@ -114,18 +115,6 @@ void click2() {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("press 2 to close");
-
-  }
-  else if(password ==""){
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("close");
-    servos[1].write(0);  // Close door btn    
-    delay(2000);
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("enter passcode:");
-
   } else {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -140,18 +129,19 @@ void click2() {
   Serial.println(password);
 }
 
-//btn2 long press being detected sometimes?
-// void longPress2() {
-//   Serial.println("btn 2 long press");
-//   lcd.clear();
-//   lcd.setCursor(0, 0);
-//   lcd.print("close");
-//   servos[1].write(0);  //Close the door
-//   delay(1000);
-//   lcd.clear();
-//   lcd.print("enter passcode:");
-// }
+// btn2 long press being detected sometimes?
+void longPress2() {
+  Serial.println("btn 2 long press");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("close");
+  servos[1].write(0);  //Close the door
+  delay(1000);
+  lcd.clear();
+  lcd.print("enter passcode:");
+}
 
+/*
 void cardSetup(){
   DynamicJsonDocument doc(1024);
 
@@ -204,6 +194,7 @@ void readCardData(){
 
   file.close();
 }
+*/
 
 void setup(){
   // Serial port for debugging purposes
@@ -214,12 +205,10 @@ void setup(){
   lcd.init();
   lcd.backlight();
 
-  pinMode(buttonPins[0], INPUT);
-
   btn1.attachClick(click1);
   btn1.attachLongPressStop(longPress1);
   btn2.attachClick(click2);
-  // btn2.attachLongPressStop(longPress2);
+  btn2.attachLongPressStop(longPress2);
 
   for(int i = 0; i < 2; i++) {
     if(!servos[i].attach(servosPins[i])) {
@@ -291,8 +280,8 @@ void setup(){
   server.begin();
   */
 
-  cardSetup();
-  readCardData();
+  //cardSetup();
+  //readCardData();
 
   lcd.setCursor(0, 0);
   lcd.print("enter passcode:");
@@ -300,9 +289,8 @@ void setup(){
   
 void loop() {
 
-  if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
+  if ( !mfrc.PICC_IsNewCardPresent() || !mfrc.PICC_ReadCardSerial()) {
     MFRC522Debug::PICC_DumpToSerial(mfrc, Serial, &(mfrc.uid));
-    
   }
 
   btn1.tick();
