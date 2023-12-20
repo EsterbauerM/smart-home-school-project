@@ -1,6 +1,8 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <iostream>
+#include <string>
+#include <algorithm>
+#include <iterator>
 #include <fstream>
 #include <WiFi.h>
 #include <AsyncTCP.h>
@@ -45,6 +47,9 @@ OneButton btn2(buttonPins[1],true);
 
 String password = "";
 String correct_p = "-.-";  //The correct password for the password door
+
+int tempUid;
+int passcards[] = {};
 
 Servo servos[2];
 
@@ -285,13 +290,32 @@ void setup(){
 
   lcd.setCursor(0, 0);
   lcd.print("enter passcode:");
+    Serial.println(passcards[0]);
+
 }
   
 void loop() {
 
   if ( !mfrc.PICC_IsNewCardPresent() || !mfrc.PICC_ReadCardSerial()) {
-    MFRC522Debug::PICC_DumpToSerial(mfrc, Serial, &(mfrc.uid));
+    return;
   }
+
+  if((int)tempUid != (int)passcards[0]){
+    for (byte i = 0; i<mfrc.uid.size; i++){
+      tempUid = tempUid + mfrc.uid.uidByte[i];
+    }
+    passcards[0] = tempUid;
+  }
+
+  Serial.println("--------------");
+  Serial.println(tempUid);
+  Serial.println(passcards[0]);
+
+  // for(int i=0;i<sizeof(passcards); i++){
+  //   if(passcards[i] ==){
+  //     Serial.println("open");
+  //   }
+  // }
 
   btn1.tick();
   btn2.tick();
