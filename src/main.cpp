@@ -136,7 +136,7 @@ void click2() {
 }
 
 
-bool stringExists(const String &str) {
+bool keyExists(const String &str) {
   for (int i = 0; i < passcards_maxAmount; i++) {
     if (passcards[i] == str) {
       return true;
@@ -314,7 +314,7 @@ void cardSetup(){
       }
       Serial.println(tempUid);
       
-      if(!stringExists(tempUid)){
+      if(!keyExists(tempUid)){
         addToStringArray(tempUid);
         lcd.noDisplay();
         delay(1000);
@@ -335,12 +335,13 @@ void loop() {
       tempUid = tempUid + mfrc.uid.uidByte[i];
       Serial.println(tempUid);
     }
-    if(stringExists(tempUid)){
+    Serial.println(tempUid);
+    if(keyExists(tempUid)){
       servos[1].write(180);
       lcd.clear();
-      lcd.print("passage granted");
+      lcd.print("door open");
       doorState = true;
-    } else {
+    } else if (!keyExists(tempUid)){
       lcd.clear();
       lcd.print("wrong key");
       delay(1000);
