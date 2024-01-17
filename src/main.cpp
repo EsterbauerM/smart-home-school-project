@@ -135,7 +135,6 @@ void click2() {
   password = "";
 }
 
-
 bool keyExists(const String &str) {
   for (int i = 0; i < passcards_maxAmount; i++) {
     if (passcards[i] == str) {
@@ -217,6 +216,8 @@ void setup(){
   MFRC522Debug::PCD_DumpVersionToSerial(mfrc, Serial);
   lcd.init();
   lcd.backlight();
+
+  pinMode(steamPin, INPUT);
 
 
   btn1.attachClick(click1);
@@ -310,7 +311,7 @@ void cardSetup(){
   while (digitalRead(buttonPins[0])){
     if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
       for (byte i = 0; i < mfrc.uid.size; i++) {
-        tempUid += mfrc.uid.uidByte[i];
+        tempUid = tempUid + mfrc.uid.uidByte[i];
       }
       Serial.println(tempUid);
       
@@ -341,13 +342,28 @@ void loop() {
       lcd.clear();
       lcd.print("door open");
       doorState = true;
+      Serial.println(tempUid);
+
     } else if (!keyExists(tempUid)){
       lcd.clear();
       lcd.print("wrong key");
+      servos[1].write(0);
       delay(1000);
+      lcd.clear();
       lcd.print("enter passcode:");
+      doorState = false;
+      Serial.println(tempUid);
     }
     tempUid = "";
+  }
+
+  int water_val = analogRead(steamPin);
+  Serial.println(water_val);
+  if(water_val > 1500) {
+    servos[0].write(0);
+  }
+  else {
+    servos[0].write(112);
   }
 
   btn1.tick();
