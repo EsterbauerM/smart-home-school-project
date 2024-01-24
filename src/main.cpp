@@ -14,6 +14,7 @@
 #include <MFRC522DriverPinSimple.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESPAsyncWebServer.h>
+#include <ToneESP32.h>
 #include "OneButton.h"
 
 #include "wifi_credentials.h"
@@ -26,7 +27,7 @@ const unsigned int
  thSensPin = 17,            // temp. & humidity
  steamPin = 34,
  fanMPin = 18, fanPPin = 19, // fan Minus & Plus
- pirPin = 35,                // IS ON ANALOG PIN NOW  
+ pirPin = 33,                // IS ON ANALOG PIN NOW  
  rgbPin = 26,
  gasPin = 23,
  buzzerPin = 25,
@@ -219,6 +220,8 @@ void setup(){
 
   pinMode(steamPin, INPUT);
 
+  pinMode(ledPin, OUTPUT);
+  pinMode(pirPin, INPUT);
 
   btn1.attachClick(click1);
   btn1.attachLongPressStop(longPress1);
@@ -365,6 +368,13 @@ void loop() {
   else {
     servos[0].write(112);
   }
+
+  int pir_val = analogRead(pirPin);
+  Serial.println(pir_val);
+  if(pir_val > 1500)
+    digitalWrite(ledPin, HIGH);
+  else
+    digitalWrite(ledPin, LOW);
 
   btn1.tick();
   btn2.tick();
