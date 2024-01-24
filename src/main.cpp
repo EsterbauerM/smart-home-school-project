@@ -108,16 +108,13 @@ int noteDurations[] = {
 void playSong(){
   for (int thisNote = 0; thisNote < 8; thisNote++) {
 
-    // to calculate the note duration, take one second divided by the note type.
-    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
     int noteDuration = 1000 / noteDurations[thisNote];
     tone(buzzerPin, melody[thisNote], noteDuration);
 
-    // to distinguish the notes, set a minimum time between them.
-    // the note's duration + 30% seems to work well:
+    //1.30 kleiner machen für weniger delay zwischen den noten
     int pauseBetweenNotes = noteDuration * 1.30;
     delay(pauseBetweenNotes);
-    // stop the tone playing:
+
     noTone(buzzerPin);
   }
 }
@@ -160,7 +157,7 @@ void click2() {
   delay(1000);
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("enter passcode:");
+  lcd.print(doorState ? "Open" : "enter passcode:");
   password = "";
 }
 
@@ -398,7 +395,6 @@ void loop() {
   }
 
   int pir_val = analogRead(pirPin);
-  Serial.println(pir_val);
   if(pir_val > 1500)
     digitalWrite(ledPin, HIGH);
   else
