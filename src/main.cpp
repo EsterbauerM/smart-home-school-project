@@ -120,6 +120,25 @@ void playSong(){
 }
 
 
+void gas(bool gasVal){
+
+  boolean gasVal = !digitalRead(gasPin);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("GAS DETECTED!");
+
+  while (gasVal){
+    if (digitalRead(gasPin))
+      gasVal = false;
+    tone(buzzerPin, NOTE_A5, 4);
+    delay(500);
+    noTone(buzzerPin);
+    delay(500);
+  }
+}
+
+
 void click1(){
   if(!doorState){
     password = password + '.';
@@ -399,6 +418,13 @@ void loop() {
     digitalWrite(ledPin, HIGH);
   else
     digitalWrite(ledPin, LOW);
+
+  boolean gasVal = !digitalRead(gasPin);
+  boolean gasDetected = false;
+  
+  if(gasVal){
+    gas(gasVal);
+  }
 
   btn1.tick();
   btn2.tick();
