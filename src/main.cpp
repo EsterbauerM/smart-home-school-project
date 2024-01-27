@@ -122,8 +122,6 @@ void playSong(){
 
 void gas(bool gasVal){
 
-  boolean gasVal = !digitalRead(gasPin);
-
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("GAS DETECTED!");
@@ -380,7 +378,7 @@ void loop() {
   if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
     for (byte i = 0; i < mfrc.uid.size; ++i) {
       tempUid = tempUid + mfrc.uid.uidByte[i];
-      Serial.println(tempUid);
+      //Serial.println(tempUid);
     }
     Serial.println(tempUid);
     if(keyExists(tempUid)){
@@ -388,7 +386,6 @@ void loop() {
       lcd.clear();
       lcd.print("door open");
       doorState = true;
-      Serial.println(tempUid);
       playSong();
 
     } else if (!keyExists(tempUid)){
@@ -399,13 +396,12 @@ void loop() {
       lcd.clear();
       lcd.print("enter passcode:");
       doorState = false;
-      Serial.println(tempUid);
     }
     tempUid = "";
   }
 
   int water_val = analogRead(steamPin);
-  Serial.println(water_val);
+  //Serial.println(water_val + " steam");
   if(water_val > 1500) {
     servos[0].write(0);
   }
@@ -423,6 +419,7 @@ void loop() {
   boolean gasDetected = false;
   
   if(gasVal){
+    Serial.println(gasVal + " gas");
     gas(gasVal);
   }
 
