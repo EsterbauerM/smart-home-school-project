@@ -46,7 +46,7 @@ OneButton btn1(buttonPins[0],true);
 OneButton btn2(buttonPins[1],true);
 
 String password = "";
-String correct_p = "_._";  //The correct password for the password door
+String correct_p = "_";  //The correct password for the password door
 
 const unsigned int passcards_maxAmount = 10;
 String tempUid;
@@ -120,20 +120,22 @@ void playSong(){
 }
 
 
-void gas(bool gasVal){
-
+void gas(){
+  
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("GAS DETECTED!");
 
-  while (gasVal){
-    if (digitalRead(gasPin))
-      gasVal = false;
-    tone(buzzerPin, NOTE_A5, 4);
-    delay(500);
+  do{
+    tone(buzzerPin, NOTE_A5, 250);
+    delay(400);
     noTone(buzzerPin);
-    delay(500);
-  }
+    delay(400);
+  }while (!digitalRead(gasPin));
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(doorState ? "Open" : "enter passcode:");
 }
 
 
@@ -263,6 +265,7 @@ void setup(){
 
   pinMode(ledPin, OUTPUT);
   pinMode(pirPin, INPUT);
+  pinMode(gasPin, INPUT);
 
   btn1.attachClick(click1);
   btn1.attachLongPressStop(longPress1);
@@ -401,13 +404,18 @@ void loop() {
   }
 
   int water_val = analogRead(steamPin);
-  //Serial.println(water_val + " steam");
-  if(water_val > 1500) {
+  Serial.println(water_val);
+  if(water_val > 3000){
+    if(servos[0].attached()){
+      servos[0].attach(5);
+      Serial.println("in loop yaaa"); // HÄÄÄÄÄÄ waruuuuuummmmmm
+    }
     servos[0].write(0);
   }
-  else {
+  
+  else 
     servos[0].write(112);
-  }
+  
 
   int pir_val = analogRead(pirPin);
   if(pir_val > 1500)
@@ -415,12 +423,13 @@ void loop() {
   else
     digitalWrite(ledPin, LOW);
 
-  boolean gasVal = !digitalRead(gasPin);
+  int gasVal = digitalRead(gasPin);
   boolean gasDetected = false;
   
-  if(gasVal){
-    Serial.println(gasVal + " gas");
-    gas(gasVal);
+  //Serial.print(gasVal);
+  //Serial.println(" gas");
+  if(!gasVal){
+    gas();
   }
 
   btn1.tick();
@@ -429,6 +438,8 @@ void loop() {
 
 
 /*
+Temperatur abhäging maybe??
+
 #include <LiteLED.h>
 //#define LED_TYPE        LED_STRIP_WS2812
 #define LED_TYPE        LED_STRIP_SK6812
