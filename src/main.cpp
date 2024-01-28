@@ -14,6 +14,8 @@
 #include <MFRC522DriverPinSimple.h>
 #include <LiquidCrystal_I2C.h>
 #include <ESPAsyncWebServer.h>
+#include <DHT.h>
+#include <DHT_U.h>
 #include "OneButton.h"
 #include "pitches.h"
 
@@ -24,7 +26,7 @@ using namespace std;
 const unsigned int 
  ledPin = 12,
  buttonPins[2] = {16,27},           // left, right button
- thSensPin = 17,            // temp. & humidity
+ tempHumiSensPin = 17,            // temp. & humidity
  steamPin = 34,
  fanMPin = 18, fanPPin = 19, // fan Minus & Plus
  pirPin = 33,                // IS ON ANALOG PIN NOW  
