@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <iostream>
 #include <string>
-#include <WiFi.h>
-#include <AsyncTCP.h>
-#include <SPIFFS.h>
+//#include <WiFi.h>
+//#include <AsyncTCP.h>
+//#include <SPIFFS.h>
 #include <Servo.h>
 #include <Wire.h>
 #include <analogWrite.h>
@@ -127,6 +127,7 @@ void gas(){
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("GAS DETECTED!");
+  servos[0].write(0);
 
   do{
     tone(buzzerPin, NOTE_A5, 250);
@@ -283,7 +284,7 @@ void setup(){
       servos[i].write(0);
     }
   }
-  
+  /*
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -291,7 +292,7 @@ void setup(){
   }
 
   // Connect to Wi-Fi
-  /*
+  
   WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.println("Connecting to WiFi..");
@@ -342,7 +343,7 @@ void setup(){
   // Start server
   server.begin();
   */
-
+  
   lcd.setCursor(0, 0);
   lcd.print("nfc setup");
   lcd.setCursor(0, 1);
@@ -361,37 +362,40 @@ void cardSetup(){
     if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
       for (byte i = 0; i < mfrc.uid.size; i++) {
         tempUid = tempUid + mfrc.uid.uidByte[i];
+        Serial.println(tempUid);
       }
-      Serial.println(tempUid);
       
       if(!keyExists(tempUid)){
         addToStringArray(tempUid);
         lcd.noDisplay();
         delay(1000);
         lcd.display();
-        tempUid = "";
+        Serial.println("--");
       }
     }
+    tempUid = "";
   }
+  Serial.println("==");
   for(int i=0; i<passcards_index; i++){
     Serial.println(passcards[i]);
   }
+  Serial.println("==");
   delay(1000);
 }
   
 void loop() {
   if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
+    tempUid = "";
     for (byte i = 0; i < mfrc.uid.size; ++i) {
       tempUid = tempUid + mfrc.uid.uidByte[i];
-      //Serial.println(tempUid);
     }
     Serial.println(tempUid);
-    if(keyExists(tempUid)){
+    if(keyExists(tempUid) && !doorState){
       servos[1].write(180);
       lcd.clear();
       lcd.print("door open");
       doorState = true;
-      playSong();
+      //playSong();
 
     } else if (!keyExists(tempUid)){
       lcd.clear();
@@ -402,20 +406,20 @@ void loop() {
       lcd.print("enter passcode:");
       doorState = false;
     }
-    tempUid = "";
+    Serial.println("in array:");
+    for(int i=0; i<passcards_index; i++){
+      Serial.println(passcards[i]);
+    }
+    Serial.println("==");
   }
 
   int water_val = analogRead(steamPin);
-  Serial.println(water_val);
   if(water_val > 3000){
     if(servos[0].attached()){
       servos[0].attach(5);
-      Serial.println("in loop yaaa"); // HÄÄÄÄÄÄ waruuuuuummmmmm
     }
     servos[0].write(0);
-  }
-  
-  else 
+  }else 
     servos[0].write(112);
   
 
@@ -428,8 +432,6 @@ void loop() {
   int gasVal = digitalRead(gasPin);
   boolean gasDetected = false;
   
-  //Serial.print(gasVal);
-  //Serial.println(" gas");
   if(!gasVal){
     gas();
   }
@@ -471,46 +473,4 @@ void setup() {
 void loop() {
     myLED.brightness( LED_BRIGHT, 1 );
 } 
-
-*/
-
-/*
-#include "DHT.h"
-#define DHT11_PIN 12
-
-DHT dht11(DHT11_PIN, DHT11);
-
-void setup() {
-  Serial.begin(9600);
-  dht11.begin(); // initialize the sensor
-}
-
-void loop() {
-  // wait a few seconds between measurements.
-  delay(5000);
-
-  // read humidity
-  float humi  = dht11.readHumidity();
-  // read temperature as Celsius
-  float tempC = dht11.readTemperature();
-  // read temperature as Fahrenheit
-  float tempF = dht11.readTemperature(true);
-
-  // check if any reads failed
-  if (isnan(humi) || isnan(tempC) || isnan(tempF)) {
-    Serial.println("Failed to read from DHT11 sensor!");
-  } else {
-    Serial.print("DHT11# Humidity: ");
-    Serial.print(humi);
-    Serial.print("%");
-
-    Serial.print("  |  "); 
-
-    Serial.print("Temperature: ");
-    Serial.print(tempC);
-    Serial.print("°C ~ ");
-    Serial.print(tempF);
-    Serial.println("°F");
-  }
-}
 */
