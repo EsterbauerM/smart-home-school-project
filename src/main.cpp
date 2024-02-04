@@ -362,15 +362,19 @@ void cardSetup(){
     if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
       for (byte i = 0; i < mfrc.uid.size; i++) {
         tempUid = tempUid + mfrc.uid.uidByte[i];
-        Serial.println(tempUid);
       }
       
       if(!keyExists(tempUid)){
+        Serial.println(tempUid);
         addToStringArray(tempUid);
-        lcd.noDisplay();
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("+ key");
         delay(1000);
-        lcd.display();
-        Serial.println("--");
+        lcd.clear();
+        lcd.print("nfc setup");
+        lcd.setCursor(0, 1);
+        lcd.print("Done? Press btn");
       }
     }
     tempUid = "";
@@ -389,6 +393,7 @@ void loop() {
     for (byte i = 0; i < mfrc.uid.size; ++i) {
       tempUid = tempUid + mfrc.uid.uidByte[i];
     }
+
     Serial.println(tempUid);
     if(keyExists(tempUid) && !doorState){
       servos[1].write(180);
