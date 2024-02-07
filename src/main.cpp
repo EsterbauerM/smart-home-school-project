@@ -142,6 +142,58 @@ void gas(){
 }
 
 
+bool keyExists(const String &str) {
+  for (int i = 0; i < passcards_maxAmount; i++) {
+    if (passcards[i] == str) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void addToStringArray(const String &str) {
+  if (passcards_index < passcards_maxAmount) {
+    passcards[passcards_index] = str;
+    passcards_index++;
+    return;
+  }
+}
+
+void readingCard(){    
+  tempUid = "";
+    for (byte i = 0; i < mfrc.uid.size; ++i) {
+      tempUid = tempUid + mfrc.uid.uidByte[i];
+    }
+
+    Serial.println(tempUid);
+    if(keyExists(tempUid)){
+      if(!doorState){
+        servos[1].write(180);
+        lcd.clear();
+        lcd.print("door open");
+        doorState = true;
+        playSong();
+      } else {
+        servos[1].write(0);
+        lcd.clear();
+        lcd.print("closing door");
+        doorState = false;
+
+      }
+
+    } else if (!keyExists(tempUid)){
+      lcd.clear();
+      lcd.print("wrong key");
+      servos[1].write(0);
+      delay(1000);
+      lcd.clear();
+      lcd.print("enter passcode:");
+      doorState = false;
+    }
+    mfrc.PICC_HaltA();
+}
+
+
 void click1(){
   if(!doorState){
     password = password + '.';
@@ -183,22 +235,6 @@ void click2() {
   password = "";
 }
 
-bool keyExists(const String &str) {
-  for (int i = 0; i < passcards_maxAmount; i++) {
-    if (passcards[i] == str) {
-      return true;
-    }
-  }
-  return false;
-}
-
-void addToStringArray(const String &str) {
-  if (passcards_index < passcards_maxAmount) {
-    passcards[passcards_index] = str;
-    passcards_index++;
-    return;
-  }
-}
 
 /*
 void cardSetup(){
@@ -350,7 +386,6 @@ void setup(){
   lcd.print("Done? Press btn");
 
   cardSetup();
-  //readCardData();
 
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -359,7 +394,7 @@ void setup(){
 
 void cardSetup(){
   while (digitalRead(buttonPins[0])){
-    if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
+    if ( mfrc.PICC_IsNewCardPresent() && mfrc.PICC_ReadCardSerial()) {
       for (byte i = 0; i < mfrc.uid.size; i++) {
         tempUid = tempUid + mfrc.uid.uidByte[i];
       }
@@ -376,6 +411,7 @@ void cardSetup(){
         lcd.setCursor(0, 1);
         lcd.print("Done? Press btn");
       }
+      mfrc.PICC_HaltA();
     }
     tempUid = "";
   }
@@ -388,34 +424,8 @@ void cardSetup(){
 }
   
 void loop() {
-  if ( mfrc.PICC_IsNewCardPresent() || mfrc.PICC_ReadCardSerial()) {
-    tempUid = "";
-    for (byte i = 0; i < mfrc.uid.size; ++i) {
-      tempUid = tempUid + mfrc.uid.uidByte[i];
-    }
-
-    Serial.println(tempUid);
-    if(keyExists(tempUid) && !doorState){
-      servos[1].write(180);
-      lcd.clear();
-      lcd.print("door open");
-      doorState = true;
-      //playSong();
-
-    } else if (!keyExists(tempUid)){
-      lcd.clear();
-      lcd.print("wrong key");
-      servos[1].write(0);
-      delay(1000);
-      lcd.clear();
-      lcd.print("enter passcode:");
-      doorState = false;
-    }
-    Serial.println("in array:");
-    for(int i=0; i<passcards_index; i++){
-      Serial.println(passcards[i]);
-    }
-    Serial.println("==");
+  if ( mfrc.PICC_IsNewCardPresent() && mfrc.PICC_ReadCardSerial()) {
+    readingCard();
   }
 
   int water_val = analogRead(steamPin);
