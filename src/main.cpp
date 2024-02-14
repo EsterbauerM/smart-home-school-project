@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <iostream>
 #include <string>
-//#include <WiFi.h>
-//#include <AsyncTCP.h>
-//#include <SPIFFS.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <SPIFFS.h>
 #include <Servo.h>
 #include <Wire.h>
 #include <analogWrite.h>
@@ -25,52 +25,51 @@ using namespace std;
 
 const unsigned int 
  ledPin = 12,
- buttonPins[2] = {16,27},           // left, right button
- tempHumiSensPin = 17,            // temp. & humidity
- steamPin = 34,
- fanMPin = 18, fanPPin = 19, // fan Minus & Plus
- pirPin = 33,                // IS ON ANALOG PIN NOW  
- rgbPin = 26,
- gasPin = 23,
- buzzerPin = 25,
+const unsigned int          // PINS
+ ledPin = 12,               //
+ buttonPins[2] = {16,27},   // left, right button
+ tempHumiSensPin = 17,      // temp. & humidity
+ steamPin = 34,             //
+ fanMPin = 18, fanPPin = 19,// fan Minus & Plus
+ pirPin = 33,               // IS ON ANALOG PIN NOW  
+ rgbPin = 26,               //
+ gasPin = 23,               //
+ buzzerPin = 25,            //
  servosPins[2]={5,13};      // 5 is Window, 13 is Door
 
-const uint8_t customAddress = 0x28;
-TwoWire &customI2C = Wire;
-MFRC522DriverI2C driver{customAddress, customI2C};
-MFRC522 mfrc{driver};
+const uint8_t customAddress = 0x28;               // NFC scanner
+TwoWire &customI2C = Wire;                        //
+MFRC522DriverI2C driver{customAddress, customI2C};// 
+MFRC522 mfrc{driver};                             //
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2); // lcd display
 
-const char* PARAM_INPUT_1 = "state";
+const char* PARAM_INPUT_1 = "state"; // spiffs var
+int ledState = LOW;                  // the current state of the output pin
+int lastButtonState = LOW;           // the previous reading from the input pin
 
 OneButton btn1(buttonPins[0],true);
 OneButton btn2(buttonPins[1],true);
 
 String password = "";
-String correct_p = "_";  //The correct password for the password door
+String correct_p = "_";  // correct password for door
 
-const unsigned int passcards_maxAmount = 10;
+const unsigned int passcards_maxAmount = 10; // max keycards for door
 String tempUid;
-String passcards[passcards_maxAmount];  
+String passcards[passcards_maxAmount]; // array with keycards
 unsigned int passcards_index = 0;
-void cardSetup();
 
 Servo servos[2];
 
 int servo_indow_pos = 0;     // Start angle of servos
-int servo_door_pos = 0;     
+int servo_door_pos = 0;      //
 int posDegrees = 0;          // 0 = Window is open, 90 (roughly) = Window is closed
-
-int ledState = LOW;          // the current state of the output pin
-int buttonState;             // the current reading from the input pin
-int lastButtonState = LOW;   // the previous reading from the input pin
-int ledToggle = HIGH;         // led on or off
 
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 40;
 
 bool doorState = false;
+bool windowState = false;
 
 AsyncWebServer server(80);
 
@@ -88,7 +87,7 @@ String outputState(){
 }
 
 String processor(const String& var){
-  if(var == "BUTTONPLACEHOLDER"){
+  if(var == "BUTTONWINDOW"){
     String buttons ="";
     String outputStateValue = outputState();
     buttons+= "<h4>Output - GPIO 2 - State <span id=\"outputState\"></span></h4><label class=\"switch\"><input type=\"checkbox\" onchange=\"toggleCheckbox(this)\" id=\"output\" " + outputStateValue + "><span class=\"slider\"></span></label>";
@@ -113,8 +112,7 @@ void playSong(){
     int noteDuration = 1000 / noteDurations[thisNote];
     tone(buzzerPin, melody[thisNote], noteDuration);
 
-    //1.30 kleiner machen für weniger delay zwischen den noten
-    int pauseBetweenNotes = noteDuration * 1.30;
+    int pauseBetweenNotes = noteDuration * 1.30; //1.30 kleiner machen für weniger delay zwischen den noten
     delay(pauseBetweenNotes);
 
     noTone(buzzerPin);
@@ -128,6 +126,7 @@ void gas(){
   lcd.setCursor(0, 0);
   lcd.print("GAS DETECTED!");
   servos[0].write(0);
+  windowState = false;
 
   do{
     tone(buzzerPin, NOTE_A5, 250);
@@ -320,7 +319,7 @@ void setup(){
       servos[i].write(0);
     }
   }
-  /*
+  
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -337,9 +336,6 @@ void setup(){
 
   Serial.println("Connected: ");
   Serial.println(WiFi.localIP());
-
-  
-  // Route for root / web page
   
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/index.html", String(), false, processor);
@@ -376,9 +372,10 @@ void setup(){
   server.on("/state", HTTP_GET, [] (AsyncWebServerRequest *request) {
     request->send(200, "text/plain", String(digitalRead(ledPin)).c_str());
   });
+  
   // Start server
   server.begin();
-  */
+  
   
   lcd.setCursor(0, 0);
   lcd.print("nfc setup");
@@ -434,8 +431,11 @@ void loop() {
       servos[0].attach(5);
     }
     servos[0].write(0);
-  }else 
+    windowState = false;
+  }else {
     servos[0].write(112);
+    windowState = true;
+  }
   
 
   int pir_val = analogRead(pirPin);
