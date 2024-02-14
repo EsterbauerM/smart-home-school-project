@@ -23,8 +23,6 @@
 
 using namespace std;
 
-const unsigned int 
- ledPin = 12,
 const unsigned int          // PINS
  ledPin = 12,               //
  buttonPins[2] = {16,27},   // left, right button
