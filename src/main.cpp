@@ -15,7 +15,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <ESPAsyncWebServer.h>
 #include <DHT.h>
-#include <DHT_U.h>
+#include <LiteLED.h>
 #include "OneButton.h"
 #include "pitches.h"
 
@@ -26,7 +26,7 @@ using namespace std;
 const unsigned int          // PINS
  ledPin = 12,               //
  buttonPins[2] = {16,27},   // left, right button
- tempHumiSensPin = 17,      // temp. & humidity
+ dhtPin = 17,      // temp. & humidity
  steamPin = 34,             //
  fanMPin = 18, fanPPin = 19,// fan Minus & Plus
  pirPin = 33,               // IS ON ANALOG PIN NOW  
@@ -34,6 +34,17 @@ const unsigned int          // PINS
  gasPin = 23,               //
  buzzerPin = 25,            //
  servosPins[2]={5,13};      // 5 is Window, 13 is Door
+
+//#define LED_TYPE LED_STRIP_WS2812
+#define LED_TYPE LED_STRIP_SK6812
+#define LED_TYPE_IS_RGBW 1   // if the LED is an RGBW type, change the 0 to 1
+#define LED_BRIGHT 50   // sets how bright the LED is. O is off; 255 is burn your eyeballs out (not recommended)
+LiteLED rgbLED( LED_TYPE, LED_TYPE_IS_RGBW );
+static const crgb_t L_RED = 0xff0000;
+static const crgb_t L_GREEN = 0x00ff00;
+static const crgb_t L_BLUE = 0x0000ff;
+static const crgb_t L_WHITE = 0xe0e0e0;
+
 
 const uint8_t customAddress = 0x28;               // NFC scanner
 TwoWire &customI2C = Wire;                        //
@@ -56,6 +67,10 @@ const unsigned int passcards_maxAmount = 10; // max keycards for door
 String tempUid;
 String passcards[passcards_maxAmount]; // array with keycards
 unsigned int passcards_index = 0;
+
+DHT dht(dhtPin, DHT22);
+float temp=0;
+float humidity=0;
 
 Servo servos[2];
 
@@ -136,6 +151,11 @@ void gas(){
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(doorState ? "Open" : "enter passcode:");
+}
+
+
+void rgbControl(float temp, float humidity){
+  rgbLED.brightness( LED_BRIGHT, 1 );
 }
 
 
@@ -307,6 +327,15 @@ void setup(){
   btn1.attachLongPressStop(longPress1);
   btn2.attachClick(click2);
 
+  dht.begin();
+  rgbLED.begin(rgbPin,4);         
+  rgbLED.brightness( LED_BRIGHT );    // set the LED photon intensity level
+  rgbLED.setPixel(0, L_WHITE, 1 );    // set the LED colour and show it
+  rgbLED.setPixel(1, L_WHITE, 1 );
+  rgbLED.setPixel(2, L_WHITE, 1 );
+  rgbLED.setPixel(3, L_WHITE, 1 );
+
+
   for(int i = 0; i < 2; i++) {
     if(!servos[i].attach(servosPins[i])) {
       Serial.print("Servo ");
@@ -317,7 +346,7 @@ void setup(){
       servos[i].write(0);
     }
   }
-  
+  /*
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
     Serial.println("An Error has occurred while mounting SPIFFS");
@@ -373,7 +402,7 @@ void setup(){
   
   // Start server
   server.begin();
-  
+  */
   
   lcd.setCursor(0, 0);
   lcd.print("nfc setup");
@@ -435,7 +464,6 @@ void loop() {
     windowState = true;
   }
   
-
   int pir_val = analogRead(pirPin);
   if(pir_val > 1500)
     digitalWrite(ledPin, HIGH);
@@ -448,6 +476,11 @@ void loop() {
   if(!gasVal){
     gas();
   }
+
+  temp = dht.readTemperature();
+  humidity = dht.readHumidity();
+
+  rgbControl(temp,humidity);
 
   btn1.tick();
   btn2.tick();
